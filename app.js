@@ -92,16 +92,28 @@ const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
 
 function clearAuthStorage() {
-  const projectPrefix = `sb-${projectRef}-`;
-  for (const storage of [window.localStorage, window.sessionStorage]) {
-    const keysToRemove = [];
-    for (let i = 0; i < storage.length; i += 1) {
-      const key = storage.key(i);
-      if (key && (key === "supabase.auth.token" || key.startsWith(projectPrefix))) {
-        keysToRemove.push(key);
+  try {
+    const projectPrefix = `sb-${projectRef}-`;
+
+    for (const storage of [window.localStorage, window.sessionStorage]) {
+      let len;
+      try {
+        len = storage.length;
+      } catch {
+        continue; // storage access blocked
       }
+
+      const keysToRemove = [];
+      for (let i = 0; i < len; i += 1) {
+        const key = storage.key(i);
+        if (key && (key === "supabase.auth.token" || key.startsWith(projectPrefix))) {
+          keysToRemove.push(key);
+        }
+      }
+      for (const key of keysToRemove) storage.removeItem(key);
     }
-    for (const key of keysToRemove) storage.removeItem(key);
+  } catch {
+    // If storage is blocked, do nothing (don’t break login).
   }
 }
 
