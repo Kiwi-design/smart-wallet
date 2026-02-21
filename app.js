@@ -159,12 +159,19 @@ for (const item of menuItems) {
 logoutBtn.addEventListener("click", async () => {
   try {
     setLoading(true);
-    const { error } = await client.auth.signOut();
-    if (error) {
-      throw error;
-    }
 
-    setStatus("Logged out.", "success");
+    const signOutResult = await Promise.race([
+      client.auth.signOut({ scope: "local" }),
+      new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 1500)),
+    ]);
+
+    if (signOutResult?.timedOut) {
+      setStatus("Logged out locally.", "success");
+    } else if (signOutResult.error) {
+      throw signOutResult.error;
+    } else {
+      setStatus("Logged out.", "success");
+    }
   } catch (error) {
     setStatus(error.message || String(error), "error");
   } finally {
