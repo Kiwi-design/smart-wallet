@@ -1,12 +1,15 @@
-const SUPABASE_URL = "https://iwqmmxgansutrjbegqva.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cW1teGdhbnN1dHJqYmVncXZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjU2NzcsImV4cCI6MjA4NzI0MTY3N30.lLjygPN2qDnHeDh9ZlZnu2_DisFWlV_qEm16bv85qXs";
+const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+const authView = document.getElementById("authView");
+const appView = document.getElementById("appView");
+const statusEl = document.getElementById("status");
 
 if (
   !window.supabase ||
   SUPABASE_URL.includes("YOUR_PROJECT") ||
   SUPABASE_ANON_KEY.includes("YOUR_SUPABASE_ANON_KEY")
 ) {
-  const statusEl = document.getElementById("status");
   statusEl.textContent =
     "Supabase is not configured yet. Open app.js and replace SUPABASE_URL and SUPABASE_ANON_KEY.";
   statusEl.className = "status show error";
@@ -21,12 +24,25 @@ const authForm = document.getElementById("authForm");
 const submitBtn = document.getElementById("submitBtn");
 const emailInput = document.getElementById("email");
 const passwordInput = document.getElementById("password");
-const statusEl = document.getElementById("status");
-const sessionEl = document.getElementById("session");
-const sessionEmail = document.getElementById("sessionEmail");
+
+const menuToggle = document.getElementById("menuToggle");
+const menuPanel = document.getElementById("menuPanel");
+const menuItems = document.querySelectorAll(".menu-item");
+const pageTitle = document.getElementById("pageTitle");
+const pageBody = document.getElementById("pageBody");
 const logoutBtn = document.getElementById("logoutBtn");
 
 let mode = "login";
+
+function showAuthView() {
+  authView.classList.add("show");
+  appView.classList.remove("show");
+}
+
+function showAppView() {
+  authView.classList.remove("show");
+  appView.classList.add("show");
+}
 
 function setMode(nextMode) {
   mode = nextMode;
@@ -55,24 +71,40 @@ function setLoading(isLoading) {
   logoutBtn.disabled = isLoading;
 }
 
+function closeMenu() {
+  menuPanel.classList.remove("show");
+  menuToggle.setAttribute("aria-expanded", "false");
+}
+
+function openMenu() {
+  menuPanel.classList.add("show");
+  menuToggle.setAttribute("aria-expanded", "true");
+}
+
+function setPage(pageName) {
+  pageTitle.textContent = pageName;
+  pageBody.textContent = "under construction";
+}
+
 async function refreshSession() {
   const { data, error } = await client.auth.getSession();
 
   if (error) {
     setStatus(error.message, "error");
+    showAuthView();
     return;
   }
 
   const user = data.session?.user;
 
   if (!user) {
-    sessionEl.classList.remove("show");
-    sessionEmail.textContent = "-";
+    showAuthView();
     return;
   }
 
-  sessionEl.classList.add("show");
-  sessionEmail.textContent = user.email || "Unknown";
+  showAppView();
+  closeMenu();
+  setPage("Portfolio");
 }
 
 async function signup(email, password) {
@@ -101,11 +133,28 @@ async function login(email, password) {
     throw error;
   }
 
-  setStatus("Login successful.", "success");
+  clearStatus();
 }
 
 loginTab.addEventListener("click", () => setMode("login"));
 signupTab.addEventListener("click", () => setMode("signup"));
+
+menuToggle.addEventListener("click", () => {
+  if (menuPanel.classList.contains("show")) {
+    closeMenu();
+    return;
+  }
+
+  openMenu();
+});
+
+for (const item of menuItems) {
+  item.addEventListener("click", () => {
+    const page = item.getAttribute("data-page");
+    setPage(page || "Section");
+    closeMenu();
+  });
+}
 
 logoutBtn.addEventListener("click", async () => {
   try {
@@ -116,7 +165,8 @@ logoutBtn.addEventListener("click", async () => {
     }
 
     setStatus("Logged out.", "success");
-    await refreshSession();
+    showAuthView();
+    closeMenu();
   } catch (error) {
     setStatus(error.message || String(error), "error");
   } finally {
@@ -156,4 +206,5 @@ client.auth.onAuthStateChange(async () => {
 });
 
 setMode("login");
+showAuthView();
 refreshSession();
