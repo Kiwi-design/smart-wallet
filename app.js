@@ -164,7 +164,7 @@ async function login(email, password) {
 
   const loginResult = await withTimeout(
     client.auth.signInWithPassword({ email, password }),
-    8000
+    30000
   );
 
   if (loginResult?.timedOut) {
