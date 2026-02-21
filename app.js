@@ -17,6 +17,11 @@ if (
 }
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
+const authStorageKeys = [
+  `sb-${projectRef}-auth-token`,
+  `supabase.auth.token`,
+];
 
 const signupTab = document.getElementById("signupTab");
 const authForm = document.getElementById("authForm");
@@ -85,6 +90,22 @@ function setPage(pageName) {
   pageBody.textContent = "under construction";
 }
 
+function clearAuthStorage() {
+  for (const key of authStorageKeys) {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
+  }
+}
+
+async function runWithTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+    }),
+  ]);
+}
+
 async function refreshSession() {
   const { data, error } = await client.auth.getSession();
 
@@ -126,10 +147,19 @@ async function signup(email, password) {
 }
 
 async function login(email, password) {
-  const { error } = await client.auth.signInWithPassword({ email, password });
+  clearAuthStorage();
 
-  if (error) {
-    throw error;
+  const loginResult = await runWithTimeout(
+    client.auth.signInWithPassword({ email, password }),
+    8000
+  );
+
+  if (loginResult?.timedOut) {
+    throw new Error("Login timed out. Please try again.");
+  }
+
+  if (loginResult.error) {
+    throw loginResult.error;
   }
 
   clearStatus();
@@ -160,19 +190,14 @@ logoutBtn.addEventListener("click", async () => {
   try {
     setLoading(true);
 
-    const signOutResult = await Promise.race([
-      client.auth.signOut({ scope: "local" }),
-      new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 1500)),
-    ]);
+    clearAuthStorage();
 
-    if (signOutResult?.timedOut) {
-      setStatus("Logged out locally.", "success");
-    } else if (signOutResult.error) {
-      throw signOutResult.error;
-    } else {
-      setStatus("Logged out.", "success");
-    }
+    // Do not block UI on provider sign-out; local cleanup is enough for this app.
+    runWithTimeout(client.auth.signOut({ scope: "local" }), 1200).catch(() => null);
+
+    setStatus("Logged out.", "success");
   } catch (error) {
+    clearAuthStorage();
     setStatus(error.message || String(error), "error");
   } finally {
     authForm.reset();
