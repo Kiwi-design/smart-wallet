@@ -18,7 +18,6 @@ if (
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const loginTab = document.getElementById("loginTab");
 const signupTab = document.getElementById("signupTab");
 const authForm = document.getElementById("authForm");
 const submitBtn = document.getElementById("submitBtn");
@@ -48,8 +47,8 @@ function setMode(nextMode) {
   mode = nextMode;
 
   const isLogin = mode === "login";
-  loginTab.classList.toggle("active", isLogin);
   signupTab.classList.toggle("active", !isLogin);
+  signupTab.textContent = isLogin ? "Sign up" : "Back to login";
 
   submitBtn.textContent = isLogin ? "Login" : "Sign up";
   passwordInput.autocomplete = isLogin ? "current-password" : "new-password";
@@ -136,8 +135,9 @@ async function login(email, password) {
   clearStatus();
 }
 
-loginTab.addEventListener("click", () => setMode("login"));
-signupTab.addEventListener("click", () => setMode("signup"));
+signupTab.addEventListener("click", () => {
+  setMode(mode === "login" ? "signup" : "login");
+});
 
 menuToggle.addEventListener("click", () => {
   if (menuPanel.classList.contains("show")) {
@@ -165,11 +165,13 @@ logoutBtn.addEventListener("click", async () => {
     }
 
     setStatus("Logged out.", "success");
-    showAuthView();
-    closeMenu();
   } catch (error) {
     setStatus(error.message || String(error), "error");
   } finally {
+    authForm.reset();
+    setMode("login");
+    showAuthView();
+    closeMenu();
     setLoading(false);
   }
 });

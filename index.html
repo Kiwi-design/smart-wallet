@@ -57,9 +57,6 @@
       }
 
       .tabs {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 10px;
         margin-bottom: 16px;
       }
 
@@ -72,6 +69,11 @@
         padding: 10px;
         font-weight: 700;
         cursor: pointer;
+      }
+
+      .tabs button {
+        width: 100%;
+        padding: 12px;
       }
 
       .tabs button.active {
@@ -200,7 +202,6 @@
         <p>Create an account or log in with your Supabase project.</p>
 
         <nav class="tabs" aria-label="Authentication mode">
-          <button id="loginTab" class="active" type="button">Login</button>
           <button id="signupTab" type="button">Sign up</button>
         </nav>
 
