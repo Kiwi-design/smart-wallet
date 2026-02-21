@@ -172,7 +172,19 @@ logoutBtn.addEventListener("click", async () => {
   try {
     setLoading(true);
 
-    const signOutResult = await client.auth.signOut({ scope: "local" });
+    const signOutPromise = client.auth.signOut({ scope: "local" });
+    const signOutResult = await Promise.race([
+      signOutPromise,
+      new Promise((resolve) => {
+        setTimeout(() => resolve({ timedOut: true }), 1500);
+      }),
+    ]);
+
+    if (signOutResult?.timedOut) {
+      clearAuthStorage();
+      setStatus("Logged out locally.", "success");
+      return;
+    }
 
     if (signOutResult.error) {
       throw signOutResult.error;
