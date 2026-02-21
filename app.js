@@ -17,6 +17,11 @@ if (
 }
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
+const authStorageKeys = [
+  `sb-${projectRef}-auth-token`,
+  `supabase.auth.token`,
+];
 
 const signupTab = document.getElementById("signupTab");
 const authForm = document.getElementById("authForm");
@@ -83,6 +88,13 @@ function openMenu() {
 function setPage(pageName) {
   pageTitle.textContent = pageName;
   pageBody.textContent = "under construction";
+}
+
+function clearAuthStorage() {
+  for (const key of authStorageKeys) {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
+  }
 }
 
 async function refreshSession() {
@@ -157,22 +169,18 @@ for (const item of menuItems) {
 }
 
 logoutBtn.addEventListener("click", async () => {
+  let shouldReload = false;
+
   try {
     setLoading(true);
 
-    const signOutResult = await Promise.race([
-      client.auth.signOut({ scope: "local" }),
-      new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 1500)),
-    ]);
+    clearAuthStorage();
 
-    if (signOutResult?.timedOut) {
-      setStatus("Logged out locally.", "success");
-    } else if (signOutResult.error) {
-      throw signOutResult.error;
-    } else {
-      setStatus("Logged out.", "success");
-    }
+    // Skip async sign-out to avoid client auth lockups; hard-reload gives a fresh auth client state.
+    setStatus("Logged out.", "success");
+    shouldReload = true;
   } catch (error) {
+    clearAuthStorage();
     setStatus(error.message || String(error), "error");
   } finally {
     authForm.reset();
@@ -180,6 +188,10 @@ logoutBtn.addEventListener("click", async () => {
     showAuthView();
     closeMenu();
     setLoading(false);
+
+    if (shouldReload) {
+      window.location.reload();
+    }
   }
 });
 
