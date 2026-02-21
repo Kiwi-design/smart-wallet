@@ -105,6 +105,15 @@ function clearAuthStorage() {
   }
 }
 
+function withTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+    }),
+  ]);
+}
+
 async function refreshSession() {
   const { data, error } = await client.auth.getSession();
 
@@ -197,10 +206,10 @@ logoutBtn.addEventListener("click", async () => {
   try {
     setLoading(true);
 
-    const signOutResult = await Promise.race([
+    const signOutResult = await withTimeout(
       client.auth.signOut({ scope: "local" }),
-      new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 2000)),
-    ]);
+      2000
+    );
 
     clearAuthStorage();
 
