@@ -1,235 +1,159 @@
-const SUPABASE_URL = "https://iwqmmxgansutrjbegqva.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cW1teGdhbnN1dHJqYmVncXZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjU2NzcsImV4cCI6MjA4NzI0MTY3N30.lLjygPN2qDnHeDh9ZlZnu2_DisFWlV_qEm16bv85qXs";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL = "https://YOUR_PROJECT.supabase.co";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
 
-// Where Supabase should redirect after email verification / magic links / password reset.
-// IMPORTANT: This must be allowed in Supabase Auth settings.
-const REDIRECT_TO = window.location.origin + window.location.pathname;
+if (
+  !window.supabase ||
+  SUPABASE_URL.includes("YOUR_PROJECT") ||
+  SUPABASE_ANON_KEY.includes("YOUR_SUPABASE_ANON_KEY")
+) {
+  const statusEl = document.getElementById("status");
+  statusEl.textContent =
+    "Supabase is not configured yet. Open app.js and replace SUPABASE_URL and SUPABASE_ANON_KEY.";
+  statusEl.className = "status show error";
+  throw new Error("Missing Supabase configuration.");
+}
 
-// ===============================
-// UI helpers
-// ===============================
-const tabLogin = document.getElementById("tab-login");
-const tabSignup = document.getElementById("tab-signup");
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const form = document.getElementById("auth-form");
-const emailEl = document.getElementById("email");
-const passwordEl = document.getElementById("password");
+const loginTab = document.getElementById("loginTab");
+const signupTab = document.getElementById("signupTab");
+const authForm = document.getElementById("authForm");
+const submitBtn = document.getElementById("submitBtn");
+const emailInput = document.getElementById("email");
+const passwordInput = document.getElementById("password");
+const statusEl = document.getElementById("status");
+const sessionEl = document.getElementById("session");
+const sessionEmail = document.getElementById("sessionEmail");
+const logoutBtn = document.getElementById("logoutBtn");
 
-const submitBtn = document.getElementById("submit");
-const resetBtn = document.getElementById("reset");
-
-const msgEl = document.getElementById("message");
-
-const authedBox = document.getElementById("authed");
-const userEmailEl = document.getElementById("user-email");
-const logoutBtn = document.getElementById("logout");
-
-let mode = "login"; // "login" | "signup"
+let mode = "login";
 
 function setMode(nextMode) {
   mode = nextMode;
 
-  if (mode === "login") {
-    tabLogin.classList.add("active");
-    tabSignup.classList.remove("active");
-    submitBtn.textContent = "Log in";
-    passwordEl.autocomplete = "current-password";
-  } else {
-    tabLogin.classList.remove("active");
-    tabSignup.classList.add("active");
-    submitBtn.textContent = "Sign up";
-    passwordEl.autocomplete = "new-password";
-  }
+  const isLogin = mode === "login";
+  loginTab.classList.toggle("active", isLogin);
+  signupTab.classList.toggle("active", !isLogin);
 
-  clearMessage();
+  submitBtn.textContent = isLogin ? "Login" : "Sign up";
+  passwordInput.autocomplete = isLogin ? "current-password" : "new-password";
+  clearStatus();
 }
 
-function setMessage(text, kind = "") {
-  msgEl.textContent = text;
-  msgEl.classList.add("show");
-  msgEl.classList.remove("ok", "err");
-  if (kind === "ok") msgEl.classList.add("ok");
-  if (kind === "err") msgEl.classList.add("err");
+function setStatus(message, type) {
+  statusEl.textContent = message;
+  statusEl.className = `status show ${type}`;
 }
 
-function clearMessage() {
-  msgEl.textContent = "";
-  msgEl.classList.remove("show", "ok", "err");
+function clearStatus() {
+  statusEl.textContent = "";
+  statusEl.className = "status";
 }
 
 function setLoading(isLoading) {
   submitBtn.disabled = isLoading;
-  resetBtn.disabled = isLoading;
   logoutBtn.disabled = isLoading;
 }
 
-// ===============================
-// Auth flows
-// ===============================
-async function signUpWithEmail(email, password) {
-  // With email confirmations enabled in Supabase, this will send a verification email.
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      emailRedirectTo: REDIRECT_TO,
-    },
-  });
+async function refreshSession() {
+  const { data, error } = await client.auth.getSession();
 
-  if (error) throw error;
-
-  // If email confirmation is required, user may be null until confirmed.
-  // data.user may exist but not confirmed; data.session is typically null.
-  setMessage(
-    "Sign up successful.\nCheck your inbox to verify your email address, then return here via the link.",
-    "ok"
-  );
-}
-
-async function loginWithEmail(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-
-  if (error) throw error;
-
-  // If email confirmation is required and user isn't confirmed, Supabase usually errors.
-  setMessage("Logged in successfully.", "ok");
-  await renderSession();
-}
-
-async function sendPasswordReset(email) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: REDIRECT_TO,
-  });
-  if (error) throw error;
-
-  setMessage(
-    "Password reset email sent.\nUse the link in the email to set a new password, then return here.",
-    "ok"
-  );
-}
-
-async function logout() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
-
-  setMessage("Logged out.", "ok");
-  await renderSession();
-}
-
-// ===============================
-// Session / verification handling
-// ===============================
-async function renderSession() {
-  const { data, error } = await supabase.auth.getSession();
   if (error) {
-    setMessage(error.message, "err");
+    setStatus(error.message, "error");
     return;
   }
 
-  const session = data.session;
+  const user = data.session?.user;
 
-  if (session?.user) {
-    authedBox.classList.add("show");
-    userEmailEl.textContent = session.user.email ?? "—";
-  } else {
-    authedBox.classList.remove("show");
-    userEmailEl.textContent = "—";
+  if (!user) {
+    sessionEl.classList.remove("show");
+    sessionEmail.textContent = "-";
+    return;
   }
+
+  sessionEl.classList.add("show");
+  sessionEmail.textContent = user.email || "Unknown";
 }
 
-/**
- * When Supabase redirects back after email verification or password recovery,
- * the URL may contain auth-related params (code, error, etc).
- *
- * Supabase v2 handles these internally. We simply:
- * - render current session
- * - surface any URL error params nicely
- */
-function showUrlErrorsIfAny() {
-  const url = new URL(window.location.href);
+async function signup(email, password) {
+  const { error } = await client.auth.signUp({
+    email,
+    password,
+    options: {
+      emailRedirectTo: window.location.href,
+    },
+  });
 
-  const error = url.searchParams.get("error");
-  const errorDesc = url.searchParams.get("error_description");
-
-  if (error || errorDesc) {
-    setMessage(
-      `Auth redirect error:\n${error ?? ""}\n${errorDesc ?? ""}`.trim(),
-      "err"
-    );
+  if (error) {
+    throw error;
   }
+
+  setStatus(
+    "Sign-up successful. Check your email and confirm your account before logging in.",
+    "success"
+  );
 }
 
-// ===============================
-// Event listeners
-// ===============================
-tabLogin.addEventListener("click", () => setMode("login"));
-tabSignup.addEventListener("click", () => setMode("signup"));
+async function login(email, password) {
+  const { error } = await client.auth.signInWithPassword({ email, password });
 
-form.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  clearMessage();
+  if (error) {
+    throw error;
+  }
 
-  const email = (emailEl.value || "").trim();
-  const password = passwordEl.value || "";
+  setStatus("Login successful.", "success");
+}
 
-  if (!email) return setMessage("Please enter your email.", "err");
-  if (!password || password.length < 6)
-    return setMessage("Password must be at least 6 characters.", "err");
+loginTab.addEventListener("click", () => setMode("login"));
+signupTab.addEventListener("click", () => setMode("signup"));
+
+logoutBtn.addEventListener("click", async () => {
+  try {
+    setLoading(true);
+    const { error } = await client.auth.signOut();
+    if (error) {
+      throw error;
+    }
+
+    setStatus("Logged out.", "success");
+    await refreshSession();
+  } catch (error) {
+    setStatus(error.message || String(error), "error");
+  } finally {
+    setLoading(false);
+  }
+});
+
+authForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
+
+  if (!email || !password) {
+    setStatus("Email and password are required.", "error");
+    return;
+  }
 
   try {
     setLoading(true);
     if (mode === "signup") {
-      await signUpWithEmail(email, password);
+      await signup(email, password);
     } else {
-      await loginWithEmail(email, password);
+      await login(email, password);
     }
-  } catch (err) {
-    setMessage(err?.message ?? String(err), "err");
+
+    await refreshSession();
+  } catch (error) {
+    setStatus(error.message || String(error), "error");
   } finally {
     setLoading(false);
   }
 });
 
-resetBtn.addEventListener("click", async () => {
-  clearMessage();
-  const email = (emailEl.value || "").trim();
-  if (!email) return setMessage("Enter your email first, then click reset.", "err");
-
-  try {
-    setLoading(true);
-    await sendPasswordReset(email);
-  } catch (err) {
-    setMessage(err?.message ?? String(err), "err");
-  } finally {
-    setLoading(false);
-  }
+client.auth.onAuthStateChange(async () => {
+  await refreshSession();
 });
 
-logoutBtn.addEventListener("click", async () => {
-  clearMessage();
-  try {
-    setLoading(true);
-    await logout();
-  } catch (err) {
-    setMessage(err?.message ?? String(err), "err");
-  } finally {
-    setLoading(false);
-  }
-});
-
-// Keep UI in sync if auth state changes in another tab, etc.
-supabase.auth.onAuthStateChange(async (_event, _session) => {
-  await renderSession();
-});
-
-// ===============================
-// Init
-// ===============================
 setMode("login");
-showUrlErrorsIfAny();
-renderSession();
+refreshSession();
