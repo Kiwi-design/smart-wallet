@@ -48,80 +48,109 @@
 
       h1,
       h2 {
-        margin: 0 0 8px;
+        margin: 0 0 12px;
+        letter-spacing: -0.02em;
+      }
+
+      h1 {
+        font-size: 1.8rem;
+      }
+
+      h2 {
+        font-size: 1.4rem;
       }
 
       p {
-        margin: 0 0 18px;
-        color: #cbd5e1;
+        margin: 0 0 16px;
+        color: rgba(226, 232, 240, 0.8);
+        line-height: 1.5;
+      }
+
+      .auth-card {
+        display: grid;
+        gap: 18px;
+        padding: 24px;
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(2, 6, 23, 0.45);
       }
 
       .tabs {
-        margin-bottom: 16px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        padding: 4px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(15, 23, 42, 0.7);
       }
 
-      .tabs button,
-      .menu-item {
-        border: 1px solid #334155;
-        background: #0f172a;
-        color: #e2e8f0;
-        border-radius: 12px;
-        padding: 10px;
-        font-weight: 700;
+      .tab {
+        flex: 1;
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 14px;
+        color: rgba(226, 232, 240, 0.9);
+        background: transparent;
         cursor: pointer;
+        font-weight: 600;
       }
 
-      .tabs button {
-        width: 100%;
-        padding: 12px;
-      }
-
-      .tabs button.active {
-        background: #1d4ed8;
-        border-color: #1d4ed8;
+      .tab.active {
+        background: rgba(148, 163, 184, 0.2);
+        color: #f8fafc;
       }
 
       form {
         display: grid;
-        gap: 12px;
+        gap: 14px;
       }
 
       label {
-        font-size: 0.85rem;
-        color: #cbd5e1;
+        display: grid;
+        gap: 6px;
+        font-size: 0.9rem;
+        color: rgba(226, 232, 240, 0.9);
       }
 
       input {
-        width: 100%;
-        border: 1px solid #334155;
-        border-radius: 10px;
-        padding: 11px;
-        background: #0f172a;
+        border-radius: 12px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(15, 23, 42, 0.8);
         color: #f8fafc;
+        padding: 12px 14px;
+        font-size: 1rem;
+      }
+
+      input:focus {
+        outline: 2px solid rgba(59, 130, 246, 0.45);
+        outline-offset: 2px;
       }
 
       .primary {
-        margin-top: 8px;
-        background: #22c55e;
-        border: none;
-        color: #052e16;
-        padding: 12px;
-        border-radius: 12px;
-        font-weight: 800;
+        border: 0;
+        border-radius: 14px;
+        padding: 12px 14px;
+        font-size: 1rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.95), rgba(59, 130, 246, 0.65));
+        color: #0b132b;
         cursor: pointer;
       }
 
-      button:disabled {
-        opacity: 0.65;
-        cursor: wait;
+      .primary:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
 
       .status {
-        margin-top: 14px;
-        border: 1px solid #334155;
-        border-radius: 10px;
-        padding: 10px;
         display: none;
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.2);
+        background: rgba(2, 6, 23, 0.65);
+        font-size: 0.95rem;
       }
 
       .status.show {
@@ -129,100 +158,132 @@
       }
 
       .status.error {
-        border-color: #ef4444;
-        color: #fecaca;
+        border-color: rgba(248, 113, 113, 0.4);
+        background: rgba(127, 29, 29, 0.35);
+        color: rgba(254, 226, 226, 0.95);
       }
 
       .status.success {
-        border-color: #22c55e;
-        color: #bbf7d0;
+        border-color: rgba(34, 197, 94, 0.35);
+        background: rgba(20, 83, 45, 0.35);
+        color: rgba(220, 252, 231, 0.95);
       }
 
       .config-note {
-        font-size: 0.78rem;
-        margin-top: 16px;
-        color: #94a3b8;
+        font-size: 0.9rem;
+        color: rgba(226, 232, 240, 0.7);
+        padding: 14px 16px;
+        border-radius: 14px;
+        border: 1px dashed rgba(148, 163, 184, 0.3);
+        background: rgba(15, 23, 42, 0.45);
       }
 
       .top-bar {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 24px;
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(2, 6, 23, 0.55);
       }
 
       .hamburger {
-        border: 1px solid #334155;
-        background: #0f172a;
-        color: #e2e8f0;
-        border-radius: 10px;
-        padding: 8px 12px;
-        font-size: 1.2rem;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        border-radius: 14px;
+        padding: 10px 12px;
+        background: rgba(15, 23, 42, 0.8);
+        color: rgba(248, 250, 252, 0.92);
         cursor: pointer;
+        font-size: 1.1rem;
       }
 
       .menu {
         display: none;
-        margin-bottom: 20px;
-        gap: 10px;
+        gap: 12px;
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(2, 6, 23, 0.55);
       }
 
       .menu.show {
         display: grid;
       }
 
-      .workspace {
-        min-height: 260px;
-        border: 1px dashed #334155;
+      .menu-item,
+      .ghost {
+        width: 100%;
         border-radius: 14px;
-        padding: 16px;
-        display: grid;
-        place-items: center;
-        text-align: center;
-      }
-
-      .workspace h3 {
-        margin: 0;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        padding: 12px 14px;
+        background: rgba(15, 23, 42, 0.8);
+        color: rgba(248, 250, 252, 0.92);
+        cursor: pointer;
+        text-align: left;
+        font-weight: 600;
       }
 
       .ghost {
-        background: #1e293b;
-        border: 1px solid #334155;
-        color: #e2e8f0;
-        padding: 10px 12px;
-        border-radius: 10px;
-        cursor: pointer;
+        border-color: rgba(248, 113, 113, 0.35);
+        background: rgba(127, 29, 29, 0.25);
+      }
+
+      .workspace {
+        margin-top: 18px;
+        padding: 24px;
+        border-radius: 18px;
+        border: 1px solid rgba(148, 163, 184, 0.25);
+        background: rgba(2, 6, 23, 0.55);
+      }
+
+      .workspace h3 {
+        margin: 0 0 8px;
+        font-size: 1.15rem;
       }
     </style>
   </head>
   <body>
     <main class="shell">
-      <section id="authView" class="auth-view show">
-        <h1>Smart Wallet Authentication</h1>
-        <p>Create an account or log in with your Supabase project.</p>
+      <section id="authView" class="auth-view" aria-label="Authentication view">
+        <div class="auth-card">
+          <header>
+            <h1>Smart Wallet</h1>
+            <p>Authenticate to access your account.</p>
+          </header>
 
-        <nav class="tabs" aria-label="Authentication mode">
-          <button id="signupTab" type="button">Sign up</button>
-        </nav>
-
-        <form id="authForm">
-          <div>
-            <label for="email">Email</label>
-            <input id="email" type="email" autocomplete="email" required />
+          <div class="tabs" role="tablist" aria-label="Authentication tabs">
+            <button id="signupTab" class="tab" type="button">Sign up</button>
           </div>
 
-          <div>
-            <label for="password">Password</label>
-            <input id="password" type="password" autocomplete="current-password" minlength="6" required />
+          <form id="authForm" autocomplete="on">
+            <label for="email">
+              Email
+              <input id="email" name="email" type="email" autocomplete="email" required />
+            </label>
+
+            <label for="password">
+              Password
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autocomplete="current-password"
+                minlength="6"
+                required
+              />
+            </label>
+
+            <button id="submitBtn" class="primary" type="submit">Login</button>
+          </form>
+
+          <section id="status" class="status" aria-live="polite"></section>
+
+          <div class="config-note">
+            Be kind to yourself and proceed step by step.
           </div>
-
-          <button id="submitBtn" class="primary" type="submit">Login</button>
-        </form>
-
-        <section id="status" class="status" role="status" aria-live="polite"></section>
-
-        <div class="config-note">
-          Be kind to yourself and proceed step by step.
         </div>
       </section>
 
