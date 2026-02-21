@@ -97,15 +97,6 @@ function clearAuthStorage() {
   }
 }
 
-async function runWithTimeout(promise, timeoutMs) {
-  return Promise.race([
-    promise,
-    new Promise((resolve) => {
-      setTimeout(() => resolve({ timedOut: true }), timeoutMs);
-    }),
-  ]);
-}
-
 async function refreshSession() {
   const { data, error } = await client.auth.getSession();
 
@@ -187,15 +178,16 @@ for (const item of menuItems) {
 }
 
 logoutBtn.addEventListener("click", async () => {
+  let shouldReload = false;
+
   try {
     setLoading(true);
 
     clearAuthStorage();
 
-    // Do not block UI on provider sign-out; local cleanup is enough for this app.
-    runWithTimeout(client.auth.signOut({ scope: "local" }), 1200).catch(() => null);
-
+    // Skip async sign-out to avoid client auth lockups; hard-reload gives a fresh auth client state.
     setStatus("Logged out.", "success");
+    shouldReload = true;
   } catch (error) {
     clearAuthStorage();
     setStatus(error.message || String(error), "error");
@@ -205,6 +197,10 @@ logoutBtn.addEventListener("click", async () => {
     showAuthView();
     closeMenu();
     setLoading(false);
+
+    if (shouldReload) {
+      window.location.reload();
+    }
   }
 });
 
