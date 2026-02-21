@@ -18,10 +18,6 @@ if (
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
-const authStorageKeys = [
-  `sb-${projectRef}-auth-token`,
-  `supabase.auth.token`,
-];
 
 const signupTab = document.getElementById("signupTab");
 const authForm = document.getElementById("authForm");
@@ -98,11 +94,7 @@ function clearAuthStorage() {
 
     for (let i = 0; i < storage.length; i += 1) {
       const key = storage.key(i);
-      if (!key) {
-        continue;
-      }
-
-      if (key === "supabase.auth.token" || key.startsWith(projectPrefix)) {
+      if (key && (key === "supabase.auth.token" || key.startsWith(projectPrefix))) {
         keysToRemove.push(key);
       }
     }
@@ -110,11 +102,16 @@ function clearAuthStorage() {
     for (const key of keysToRemove) {
       storage.removeItem(key);
     }
-
-    for (const key of authStorageKeys) {
-      storage.removeItem(key);
-    }
   }
+}
+
+function withTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise((resolve) => {
+      setTimeout(() => resolve({ timedOut: true }), timeoutMs);
+    }),
+  ]);
 }
 
 async function refreshSession() {
@@ -209,20 +206,18 @@ logoutBtn.addEventListener("click", async () => {
   try {
     setLoading(true);
 
-    const signOutResult = await Promise.race([
+    const signOutResult = await withTimeout(
       client.auth.signOut({ scope: "local" }),
-      new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 2000)),
-    ]);
+      2000
+    );
 
     clearAuthStorage();
 
-    if (signOutResult?.timedOut) {
-      setStatus("Logged out locally.", "success");
-    } else if (signOutResult?.error) {
+    if (signOutResult?.error) {
       throw signOutResult.error;
-    } else {
-      setStatus("Logged out.", "success");
     }
+
+    setStatus(signOutResult?.timedOut ? "Logged out locally." : "Logged out.", "success");
   } catch (error) {
     clearAuthStorage();
     setStatus(error.message || String(error), "error");
