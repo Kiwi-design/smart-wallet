@@ -1,17 +1,9 @@
 // ===============================
 // Supabase config (YOUR PROJECT)
 // ===============================
-const SUPABASE_PROJECT_ID = "iwqmmxgansutrjbegqva";
-const SUPABASE_URL = `https://${SUPABASE_PROJECT_ID}.supabase.co`;
+const SUPABASE_URL = "https://iwqmmxgansutrjbegqva.supabase.co";
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cW1teGdhbnN1dHJqYmVncXZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjU2NzcsImV4cCI6MjA4NzI0MTY3N30.lLjygPN2qDnHeDh9ZlZnu2_DisFWlV_qEm16bv85qXs";
-
-if (!window.supabase || !window.supabase.createClient) {
-  throw new Error(
-    "Supabase library not loaded. Make sure you're using the UMD build and that the script tag is before app.js."
-  );
-}
-
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Where Supabase should redirect after email verification / magic links / password reset.
