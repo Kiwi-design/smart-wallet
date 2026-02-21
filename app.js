@@ -138,10 +138,19 @@ async function signup(email, password) {
 }
 
 async function login(email, password) {
-  const { error } = await client.auth.signInWithPassword({ email, password });
+  clearAuthStorage();
 
-  if (error) {
-    throw error;
+  const loginResult = await runWithTimeout(
+    client.auth.signInWithPassword({ email, password }),
+    8000
+  );
+
+  if (loginResult?.timedOut) {
+    throw new Error("Login timed out. Please try again.");
+  }
+
+  if (loginResult.error) {
+    throw loginResult.error;
   }
 
   clearStatus();
