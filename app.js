@@ -17,6 +17,11 @@ if (
 }
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
+const authStorageKeys = [
+  `sb-${projectRef}-auth-token`,
+  `supabase.auth.token`,
+];
 
 const signupTab = document.getElementById("signupTab");
 const authForm = document.getElementById("authForm");
@@ -85,6 +90,33 @@ function setPage(pageName) {
   pageBody.textContent = "under construction";
 }
 
+function clearAuthStorage() {
+  const projectPrefix = `sb-${projectRef}-`;
+
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    const keysToRemove = [];
+
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (!key) {
+        continue;
+      }
+
+      if (key === "supabase.auth.token" || key.startsWith(projectPrefix)) {
+        keysToRemove.push(key);
+      }
+    }
+
+    for (const key of keysToRemove) {
+      storage.removeItem(key);
+    }
+
+    for (const key of authStorageKeys) {
+      storage.removeItem(key);
+    }
+  }
+}
+
 async function refreshSession() {
   const { data, error } = await client.auth.getSession();
 
@@ -126,6 +158,12 @@ async function signup(email, password) {
 }
 
 async function login(email, password) {
+  await Promise.race([
+    client.auth.signOut({ scope: "local" }),
+    new Promise((resolve) => setTimeout(resolve, 1200)),
+  ]);
+  clearAuthStorage();
+
   const { error } = await client.auth.signInWithPassword({ email, password });
 
   if (error) {
@@ -162,17 +200,20 @@ logoutBtn.addEventListener("click", async () => {
 
     const signOutResult = await Promise.race([
       client.auth.signOut({ scope: "local" }),
-      new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 1500)),
+      new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 2000)),
     ]);
+
+    clearAuthStorage();
 
     if (signOutResult?.timedOut) {
       setStatus("Logged out locally.", "success");
-    } else if (signOutResult.error) {
+    } else if (signOutResult?.error) {
       throw signOutResult.error;
     } else {
       setStatus("Logged out.", "success");
     }
   } catch (error) {
+    clearAuthStorage();
     setStatus(error.message || String(error), "error");
   } finally {
     authForm.reset();
