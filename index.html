@@ -4,17 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Smart Wallet Auth</title>
+
+    <!-- IMPORTANT: Use the UMD build explicitly (reliable window.supabase in browsers) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
     <style>
       :root {
         color-scheme: dark;
         font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       }
-
-      * {
-        box-sizing: border-box;
-      }
-
+      * { box-sizing: border-box; }
       body {
         margin: 0;
         min-height: 100vh;
@@ -24,7 +23,6 @@
         color: #f8fafc;
         padding: 20px;
       }
-
       .shell {
         width: 100%;
         max-width: 760px;
@@ -35,37 +33,12 @@
         backdrop-filter: blur(6px);
         box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
       }
-
-      .auth-view,
-      .app-view {
-        display: none;
-      }
-
-      .auth-view.show,
-      .app-view.show {
-        display: block;
-      }
-
-      h1,
-      h2 {
-        margin: 0 0 12px;
-        letter-spacing: -0.02em;
-      }
-
-      h1 {
-        font-size: 1.8rem;
-      }
-
-      h2 {
-        font-size: 1.4rem;
-      }
-
-      p {
-        margin: 0 0 16px;
-        color: rgba(226, 232, 240, 0.8);
-        line-height: 1.5;
-      }
-
+      .auth-view, .app-view { display: none; }
+      .auth-view.show, .app-view.show { display: block; }
+      h1, h2 { margin: 0 0 12px; letter-spacing: -0.02em; }
+      h1 { font-size: 1.8rem; }
+      h2 { font-size: 1.4rem; }
+      p { margin: 0 0 16px; color: rgba(226, 232, 240, 0.8); line-height: 1.5; }
       .auth-card {
         display: grid;
         gap: 18px;
@@ -74,7 +47,6 @@
         border: 1px solid rgba(148, 163, 184, 0.25);
         background: rgba(2, 6, 23, 0.45);
       }
-
       .tabs {
         display: flex;
         gap: 12px;
@@ -85,7 +57,6 @@
         border: 1px solid rgba(148, 163, 184, 0.25);
         background: rgba(15, 23, 42, 0.7);
       }
-
       .tab {
         flex: 1;
         border: 0;
@@ -96,24 +67,14 @@
         cursor: pointer;
         font-weight: 600;
       }
-
-      .tab.active {
-        background: rgba(148, 163, 184, 0.2);
-        color: #f8fafc;
-      }
-
-      form {
-        display: grid;
-        gap: 14px;
-      }
-
+      .tab.active { background: rgba(148, 163, 184, 0.2); color: #f8fafc; }
+      form { display: grid; gap: 14px; }
       label {
         display: grid;
         gap: 6px;
         font-size: 0.9rem;
         color: rgba(226, 232, 240, 0.9);
       }
-
       input {
         border-radius: 12px;
         border: 1px solid rgba(148, 163, 184, 0.25);
@@ -122,12 +83,7 @@
         padding: 12px 14px;
         font-size: 1rem;
       }
-
-      input:focus {
-        outline: 2px solid rgba(59, 130, 246, 0.45);
-        outline-offset: 2px;
-      }
-
+      input:focus { outline: 2px solid rgba(59, 130, 246, 0.45); outline-offset: 2px; }
       .primary {
         border: 0;
         border-radius: 14px;
@@ -138,12 +94,7 @@
         color: #0b132b;
         cursor: pointer;
       }
-
-      .primary:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-
+      .primary:disabled { opacity: 0.6; cursor: not-allowed; }
       .status {
         display: none;
         padding: 12px 14px;
@@ -152,23 +103,17 @@
         background: rgba(2, 6, 23, 0.65);
         font-size: 0.95rem;
       }
-
-      .status.show {
-        display: block;
-      }
-
+      .status.show { display: block; }
       .status.error {
         border-color: rgba(248, 113, 113, 0.4);
         background: rgba(127, 29, 29, 0.35);
         color: rgba(254, 226, 226, 0.95);
       }
-
       .status.success {
         border-color: rgba(34, 197, 94, 0.35);
         background: rgba(20, 83, 45, 0.35);
         color: rgba(220, 252, 231, 0.95);
       }
-
       .config-note {
         font-size: 0.9rem;
         color: rgba(226, 232, 240, 0.7);
@@ -177,7 +122,6 @@
         border: 1px dashed rgba(148, 163, 184, 0.3);
         background: rgba(15, 23, 42, 0.45);
       }
-
       .top-bar {
         display: flex;
         align-items: center;
@@ -188,7 +132,6 @@
         border: 1px solid rgba(148, 163, 184, 0.25);
         background: rgba(2, 6, 23, 0.55);
       }
-
       .hamburger {
         border: 1px solid rgba(148, 163, 184, 0.28);
         border-radius: 14px;
@@ -198,7 +141,6 @@
         cursor: pointer;
         font-size: 1.1rem;
       }
-
       .menu {
         display: none;
         gap: 12px;
@@ -208,13 +150,8 @@
         border: 1px solid rgba(148, 163, 184, 0.25);
         background: rgba(2, 6, 23, 0.55);
       }
-
-      .menu.show {
-        display: grid;
-      }
-
-      .menu-item,
-      .ghost {
+      .menu.show { display: grid; }
+      .menu-item, .ghost {
         width: 100%;
         border-radius: 14px;
         border: 1px solid rgba(148, 163, 184, 0.28);
@@ -225,12 +162,10 @@
         text-align: left;
         font-weight: 600;
       }
-
       .ghost {
         border-color: rgba(248, 113, 113, 0.35);
         background: rgba(127, 29, 29, 0.25);
       }
-
       .workspace {
         margin-top: 18px;
         padding: 24px;
@@ -238,11 +173,7 @@
         border: 1px solid rgba(148, 163, 184, 0.25);
         background: rgba(2, 6, 23, 0.55);
       }
-
-      .workspace h3 {
-        margin: 0 0 8px;
-        font-size: 1.15rem;
-      }
+      .workspace h3 { margin: 0 0 8px; font-size: 1.15rem; }
     </style>
   </head>
   <body>
@@ -281,9 +212,7 @@
 
           <section id="status" class="status" aria-live="polite"></section>
 
-          <div class="config-note">
-            Be kind to yourself and proceed step by step.
-          </div>
+          <div class="config-note">Be kind to yourself and proceed step by step.</div>
         </div>
       </section>
 
@@ -311,6 +240,7 @@
       </section>
     </main>
 
-    <script src="./app.js?v=20260221-2"></script>
+    <!-- Cache-bust so you definitely run the new JS -->
+    <script src="./app.js?v=fix-apikey-1"></script>
   </body>
 </html>
