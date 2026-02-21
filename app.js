@@ -155,15 +155,14 @@ async function signup(email, password) {
 }
 
 async function login(email, password) {
+  // Clear any stale local auth state before attempting a fresh sign-in.
   await Promise.race([
     client.auth.signOut({ scope: "local" }),
     new Promise((resolve) => setTimeout(resolve, 1200)),
   ]);
   clearAuthStorage();
 
-  const { error } = await client.auth.signInWithPassword({ email, password });
-
-  const loginResult = await runWithTimeout(
+  const loginResult = await withTimeout(
     client.auth.signInWithPassword({ email, password }),
     8000
   );
@@ -172,7 +171,7 @@ async function login(email, password) {
     throw new Error("Login timed out. Please try again.");
   }
 
-  if (loginResult.error) {
+  if (loginResult?.error) {
     throw loginResult.error;
   }
 
