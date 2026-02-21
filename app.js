@@ -16,6 +16,14 @@ if (
   throw new Error("Missing Supabase configuration.");
 }
 
+const originalFetch = window.fetch;
+window.fetch = (input, init = {}) => {
+  const headers = new Headers(init.headers || {});
+  if (!headers.has("apikey")) headers.set("apikey", SUPABASE_ANON_KEY);
+  if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${SUPABASE_ANON_KEY}`);
+  return originalFetch(input, { ...init, headers });
+};
+
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
 
