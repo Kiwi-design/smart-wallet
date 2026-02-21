@@ -1,30 +1,60 @@
 const SUPABASE_URL = "https://iwqmmxgansutrjbegqva.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cW1teGdhbnN1dHJqYmVncXZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjU2NzcsImV4cCI6MjA4NzI0MTY3N30.lLjygPN2qDnHeDh9ZlZnu2_DisFWlV_qEm16bv85qXs";
+const SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml3cW1teGdhbnN1dHJqYmVncXZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2NjU2NzcsImV4cCI6MjA4NzI0MTY3N30.lLjygPN2qDnHeDh9ZlZnu2_DisFWlV_qEm16bv85qXs";
 
 const authView = document.getElementById("authView");
 const appView = document.getElementById("appView");
 const statusEl = document.getElementById("status");
 
-if (
-  !window.supabase ||
-  SUPABASE_URL.includes("YOUR_PROJECT") ||
-  SUPABASE_ANON_KEY.includes("YOUR_SUPABASE_ANON_KEY")
-) {
-  statusEl.textContent =
-    "Supabase is not configured yet. Open app.js and replace SUPABASE_URL and SUPABASE_ANON_KEY.";
-  statusEl.className = "status show error";
+function setStatus(message, type) {
+  statusEl.textContent = message;
+  statusEl.className = `status show ${type}`;
+}
+function clearStatus() {
+  statusEl.textContent = "";
+  statusEl.className = "status";
+}
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  setStatus("Supabase config missing in app.js.", "error");
   throw new Error("Missing Supabase configuration.");
 }
 
-const originalFetch = window.fetch;
+if (!window.supabase || typeof window.supabase.createClient !== "function") {
+  setStatus(
+    "Supabase library did not load. Check the script tag (use the UMD bundle) and your CSP/network.",
+    "error"
+  );
+  throw new Error("Supabase library missing.");
+}
+
+/**
+ * HARDENING FIX:
+ * Some environments/extensions/proxies strip custom headers.
+ * We force `apikey` and `Authorization` onto every outgoing request made by supabase-js.
+ */
+const originalFetch = window.fetch.bind(window);
 window.fetch = (input, init = {}) => {
   const headers = new Headers(init.headers || {});
+
+  // Ensure apikey exists
   if (!headers.has("apikey")) headers.set("apikey", SUPABASE_ANON_KEY);
+
+  // Ensure Authorization exists (Supabase often uses Bearer anon key for auth endpoints)
   if (!headers.has("Authorization")) headers.set("Authorization", `Bearer ${SUPABASE_ANON_KEY}`);
+
   return originalFetch(input, { ...init, headers });
 };
 
-const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: {
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    },
+  },
+});
+
 const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
 
 const signupTab = document.getElementById("signupTab");
@@ -46,7 +76,6 @@ function showAuthView() {
   authView.classList.add("show");
   appView.classList.remove("show");
 }
-
 function showAppView() {
   authView.classList.remove("show");
   appView.classList.add("show");
@@ -62,16 +91,6 @@ function setMode(nextMode) {
   submitBtn.textContent = isLogin ? "Login" : "Sign up";
   passwordInput.autocomplete = isLogin ? "current-password" : "new-password";
   clearStatus();
-}
-
-function setStatus(message, type) {
-  statusEl.textContent = message;
-  statusEl.className = `status show ${type}`;
-}
-
-function clearStatus() {
-  statusEl.textContent = "";
-  statusEl.className = "status";
 }
 
 function setLoading(isLoading) {
@@ -99,27 +118,14 @@ function clearAuthStorage() {
 
   for (const storage of [window.localStorage, window.sessionStorage]) {
     const keysToRemove = [];
-
     for (let i = 0; i < storage.length; i += 1) {
       const key = storage.key(i);
       if (key && (key === "supabase.auth.token" || key.startsWith(projectPrefix))) {
         keysToRemove.push(key);
       }
     }
-
-    for (const key of keysToRemove) {
-      storage.removeItem(key);
-    }
+    for (const key of keysToRemove) storage.removeItem(key);
   }
-}
-
-function withTimeout(promise, timeoutMs) {
-  return Promise.race([
-    promise,
-    new Promise((resolve) => {
-      setTimeout(() => resolve({ timedOut: true }), timeoutMs);
-    }),
-  ]);
 }
 
 async function refreshSession() {
@@ -132,7 +138,6 @@ async function refreshSession() {
   }
 
   const user = data.session?.user;
-
   if (!user) {
     showAuthView();
     return;
@@ -147,43 +152,39 @@ async function signup(email, password) {
   const { error } = await client.auth.signUp({
     email,
     password,
-    options: {
-      emailRedirectTo: window.location.href,
-    },
+    options: { emailRedirectTo: window.location.href },
   });
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
-  setStatus(
-    "Sign-up successful. Check your email and confirm your account before logging in.",
-    "success"
-  );
+  setStatus("Sign-up successful. Confirm your email before logging in.", "success");
 }
 
 async function login(email, password) {
-  // Clear any stale local auth state before attempting a fresh sign-in.
-  await Promise.race([
-    client.auth.signOut({ scope: "local" }),
-    new Promise((resolve) => setTimeout(resolve, 1200)),
-  ]);
+  // Clear stale local auth state before attempting a fresh sign-in.
+  try {
+    await client.auth.signOut({ scope: "local" });
+  } catch (_) {
+    // ignore
+  }
   clearAuthStorage();
 
-  const loginResult = await withTimeout(
-    client.auth.signInWithPassword({ email, password }),
-    30000
-  );
+  // IMPORTANT FIX: do NOT hard-fail early with a fake timeout.
+  // Instead, show a "still working" message if it takes long.
+  const warnTimer = setTimeout(() => {
+    setStatus("Still logging in… (project/network may be slow)", "error");
+  }, 8000);
 
-  if (loginResult?.timedOut) {
-    throw new Error("Login timed out. Please try again.");
+  try {
+    const { data, error } = await client.auth.signInWithPassword({ email, password });
+    if (error) throw error;
+
+    // If sign-in succeeded but session isn't present yet, refreshSession handles it.
+    clearStatus();
+    return data;
+  } finally {
+    clearTimeout(warnTimer);
   }
-
-  if (loginResult?.error) {
-    throw loginResult.error;
-  }
-
-  clearStatus();
 }
 
 signupTab.addEventListener("click", () => {
@@ -191,12 +192,8 @@ signupTab.addEventListener("click", () => {
 });
 
 menuToggle.addEventListener("click", () => {
-  if (menuPanel.classList.contains("show")) {
-    closeMenu();
-    return;
-  }
-
-  openMenu();
+  if (menuPanel.classList.contains("show")) closeMenu();
+  else openMenu();
 });
 
 for (const item of menuItems) {
@@ -208,36 +205,20 @@ for (const item of menuItems) {
 }
 
 logoutBtn.addEventListener("click", async () => {
-  let shouldReload = false;
-
   try {
     setLoading(true);
-
-    const signOutResult = await withTimeout(
-      client.auth.signOut({ scope: "local" }),
-      2000
-    );
-
+    await client.auth.signOut({ scope: "local" });
     clearAuthStorage();
-
-    if (signOutResult?.error) {
-      throw signOutResult.error;
-    }
-
-    setStatus(signOutResult?.timedOut ? "Logged out locally." : "Logged out.", "success");
+    setStatus("Logged out.", "success");
   } catch (error) {
     clearAuthStorage();
-    setStatus(error.message || String(error), "error");
+    setStatus(error?.message || String(error), "error");
   } finally {
     authForm.reset();
     setMode("login");
     showAuthView();
     closeMenu();
     setLoading(false);
-
-    if (shouldReload) {
-      window.location.reload();
-    }
   }
 });
 
@@ -254,22 +235,21 @@ authForm.addEventListener("submit", async (event) => {
 
   try {
     setLoading(true);
-    if (mode === "signup") {
-      await signup(email, password);
-    } else {
-      await login(email, password);
-    }
+    clearStatus();
+
+    if (mode === "signup") await signup(email, password);
+    else await login(email, password);
 
     await refreshSession();
   } catch (error) {
-    setStatus(error.message || String(error), "error");
+    setStatus(error?.message || String(error), "error");
   } finally {
     setLoading(false);
   }
 });
 
-client.auth.onAuthStateChange(async () => {
-  await refreshSession();
+client.auth.onAuthStateChange(() => {
+  refreshSession();
 });
 
 setMode("login");
