@@ -146,10 +146,25 @@ async function signup(email, password) {
 }
 
 async function login(email, password) {
+  await Promise.race([
+    client.auth.signOut({ scope: "local" }),
+    new Promise((resolve) => setTimeout(resolve, 1200)),
+  ]);
+  clearAuthStorage();
+
   const { error } = await client.auth.signInWithPassword({ email, password });
 
-  if (error) {
-    throw error;
+  const loginResult = await runWithTimeout(
+    client.auth.signInWithPassword({ email, password }),
+    8000
+  );
+
+  if (loginResult?.timedOut) {
+    throw new Error("Login timed out. Please try again.");
+  }
+
+  if (loginResult.error) {
+    throw loginResult.error;
   }
 
   clearStatus();
@@ -177,6 +192,8 @@ for (const item of menuItems) {
 }
 
 logoutBtn.addEventListener("click", async () => {
+  let shouldReload = false;
+
   try {
     setLoading(true);
 
@@ -201,6 +218,10 @@ logoutBtn.addEventListener("click", async () => {
     showAuthView();
     closeMenu();
     setLoading(false);
+
+    if (shouldReload) {
+      window.location.reload();
+    }
   }
 });
 
