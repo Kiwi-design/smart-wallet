@@ -87,6 +87,12 @@ const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
     },
   },
+  auth: {
+    persistSession: true,
+    storage: window.sessionStorage,     // uses sessionStorage (often allowed when localStorage isn’t)
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
 });
 
 const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
