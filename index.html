@@ -3,136 +3,252 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Supabase Auth • Login / Sign Up</title>
+    <title>Smart Wallet Auth</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-      :root { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-      body { margin: 0; background: #0b0f19; color: #e7eaf1; }
-      .wrap { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-      .card {
-        width: 100%;
-        max-width: 420px;
-        background: #121a2b;
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      :root {
+        color-scheme: dark;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at top, #1c2541, #0b132b 55%);
+        color: #f8fafc;
         padding: 20px;
       }
-      h1 { font-size: 18px; margin: 0 0 14px; }
-      .tabs { display: flex; gap: 8px; margin-bottom: 14px; }
-      .tab {
-        flex: 1;
-        background: #0f1524;
-        color: #cfd6e6;
-        border: 1px solid rgba(255,255,255,.10);
-        padding: 10px 12px;
-        border-radius: 12px;
-        cursor: pointer;
-        font-weight: 600;
+
+      .shell {
+        width: 100%;
+        max-width: 760px;
+        border: 1px solid rgba(148, 163, 184, 0.3);
+        background: rgba(15, 23, 42, 0.92);
+        border-radius: 20px;
+        padding: 24px;
+        backdrop-filter: blur(6px);
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
       }
-      .tab.active { background: #1c2a47; border-color: rgba(255,255,255,.18); color: #fff; }
-      label { display: block; font-size: 12px; margin: 10px 0 6px; color: #b9c2d9; }
+
+      .auth-view,
+      .app-view {
+        display: none;
+      }
+
+      .auth-view.show,
+      .app-view.show {
+        display: block;
+      }
+
+      h1,
+      h2 {
+        margin: 0 0 8px;
+      }
+
+      p {
+        margin: 0 0 18px;
+        color: #cbd5e1;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+
+      .tabs button,
+      .menu-item {
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: 12px;
+        padding: 10px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .tabs button.active {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+      }
+
+      form {
+        display: grid;
+        gap: 12px;
+      }
+
+      label {
+        font-size: 0.85rem;
+        color: #cbd5e1;
+      }
+
       input {
         width: 100%;
-        padding: 12px 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(255,255,255,.12);
-        background: #0f1524;
-        color: #fff;
-        outline: none;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 11px;
+        background: #0f172a;
+        color: #f8fafc;
       }
-      input:focus { border-color: rgba(120,180,255,.6); }
-      .row { display: flex; gap: 10px; align-items: center; margin-top: 14px; }
-      button {
-        width: 100%;
-        padding: 12px 12px;
-        border-radius: 12px;
-        border: 0;
-        cursor: pointer;
-        font-weight: 700;
-        background: #3b82f6;
-        color: #071022;
-      }
-      button.secondary { background: #223255; color: #e7eaf1; border: 1px solid rgba(255,255,255,.12); }
-      button:disabled { opacity: .65; cursor: not-allowed; }
-      .msg {
-        margin-top: 14px;
-        padding: 10px 12px;
-        border-radius: 12px;
-        border: 1px solid rgba(255,255,255,.12);
-        background: rgba(255,255,255,.05);
-        color: #d8def0;
-        font-size: 13px;
-        line-height: 1.35;
-        display: none;
-        white-space: pre-wrap;
-      }
-      .msg.show { display: block; }
-      .msg.ok { border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.08); }
-      .msg.err { border-color: rgba(239,68,68,.35); background: rgba(239,68,68,.08); }
-      .small { font-size: 12px; color: #aab4cd; margin-top: 10px; }
-      .authed {
-        margin-top: 14px;
+
+      .primary {
+        margin-top: 8px;
+        background: #22c55e;
+        border: none;
+        color: #052e16;
         padding: 12px;
         border-radius: 12px;
-        border: 1px dashed rgba(255,255,255,.18);
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        opacity: 0.65;
+        cursor: wait;
+      }
+
+      .status {
+        margin-top: 14px;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 10px;
         display: none;
       }
-      .authed.show { display: block; }
-      code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
-      a { color: #93c5fd; }
+
+      .status.show {
+        display: block;
+      }
+
+      .status.error {
+        border-color: #ef4444;
+        color: #fecaca;
+      }
+
+      .status.success {
+        border-color: #22c55e;
+        color: #bbf7d0;
+      }
+
+      .config-note {
+        font-size: 0.78rem;
+        margin-top: 16px;
+        color: #94a3b8;
+      }
+
+      .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .hamburger {
+        border: 1px solid #334155;
+        background: #0f172a;
+        color: #e2e8f0;
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 1.2rem;
+        cursor: pointer;
+      }
+
+      .menu {
+        display: none;
+        margin-bottom: 20px;
+        gap: 10px;
+      }
+
+      .menu.show {
+        display: grid;
+      }
+
+      .workspace {
+        min-height: 260px;
+        border: 1px dashed #334155;
+        border-radius: 14px;
+        padding: 16px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+      }
+
+      .workspace h3 {
+        margin: 0;
+      }
+
+      .ghost {
+        background: #1e293b;
+        border: 1px solid #334155;
+        color: #e2e8f0;
+        padding: 10px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+      }
     </style>
   </head>
-
   <body>
-    <div class="wrap">
-      <div class="card">
-        <h1>Supabase Auth</h1>
+    <main class="shell">
+      <section id="authView" class="auth-view show">
+        <h1>Smart Wallet Authentication</h1>
+        <p>Create an account or log in with your Supabase project.</p>
 
-        <div class="tabs">
-          <button class="tab active" id="tab-login" type="button">Log in</button>
-          <button class="tab" id="tab-signup" type="button">Sign up</button>
-        </div>
+        <nav class="tabs" aria-label="Authentication mode">
+          <button id="loginTab" class="active" type="button">Login</button>
+          <button id="signupTab" type="button">Sign up</button>
+        </nav>
 
-        <form id="auth-form">
-          <label for="email">Email</label>
-          <input id="email" type="email" autocomplete="email" required placeholder="you@example.com" />
-
-          <label for="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            autocomplete="current-password"
-            required
-            placeholder="••••••••"
-            minlength="6"
-          />
-
-          <div class="row">
-            <button id="submit" type="submit">Log in</button>
+        <form id="authForm">
+          <div>
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" required />
           </div>
 
-          <div class="row">
-            <button id="reset" class="secondary" type="button">Send password reset email</button>
+          <div>
+            <label for="password">Password</label>
+            <input id="password" type="password" autocomplete="current-password" minlength="6" required />
           </div>
 
-          <div id="message" class="msg" role="status" aria-live="polite"></div>
-
-          <div class="small">
-            Email verification is required on sign up. After clicking the email link, you’ll be returned here.
-          </div>
+          <button id="submitBtn" class="primary" type="submit">Login</button>
         </form>
 
-        <div id="authed" class="authed">
-          <div><strong>Signed in</strong></div>
-          <div class="small">User: <code id="user-email">—</code></div>
-          <div class="row">
-            <button id="logout" class="secondary" type="button">Log out</button>
-          </div>
-        </div>
-      </div>
-    </div>
+        <section id="status" class="status" role="status" aria-live="polite"></section>
 
-    <!-- Supabase JS v2 -->
+        <div class="config-note">
+          Set your project URL and anon key inside <code>app.js</code> before using this page.
+        </div>
+      </section>
+
+      <section id="appView" class="app-view" aria-label="Smart Wallet main menu">
+        <div class="top-bar">
+          <h2>Smart Wallet</h2>
+          <button id="menuToggle" class="hamburger" type="button" aria-expanded="false" aria-controls="menuPanel">
+            ☰
+          </button>
+        </div>
+
+        <nav id="menuPanel" class="menu" aria-label="Main menu">
+          <button class="menu-item" data-page="Add/Edit transactions" type="button">Add/Edit transactions</button>
+          <button class="menu-item" data-page="Transactions" type="button">Transactions</button>
+          <button class="menu-item" data-page="Portfolio" type="button">Portfolio</button>
+          <button id="logoutBtn" class="ghost" type="button">Log out</button>
+        </nav>
+
+        <section class="workspace">
+          <div>
+            <h3 id="pageTitle">Welcome</h3>
+            <p id="pageBody">under construction</p>
+          </div>
+        </section>
+      </section>
+    </main>
+
     <script src="./app.js"></script>
   </body>
 </html>
