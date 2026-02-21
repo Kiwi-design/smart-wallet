@@ -17,6 +17,11 @@ if (
 }
 
 const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const projectRef = new URL(SUPABASE_URL).hostname.split(".")[0];
+const authStorageKeys = [
+  `sb-${projectRef}-auth-token`,
+  `supabase.auth.token`,
+];
 
 const signupTab = document.getElementById("signupTab");
 const authForm = document.getElementById("authForm");
@@ -83,6 +88,13 @@ function openMenu() {
 function setPage(pageName) {
   pageTitle.textContent = pageName;
   pageBody.textContent = "under construction";
+}
+
+function clearAuthStorage() {
+  for (const key of authStorageKeys) {
+    window.localStorage.removeItem(key);
+    window.sessionStorage.removeItem(key);
+  }
 }
 
 async function refreshSession() {
@@ -160,19 +172,16 @@ logoutBtn.addEventListener("click", async () => {
   try {
     setLoading(true);
 
-    const signOutResult = await Promise.race([
-      client.auth.signOut({ scope: "local" }),
-      new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 1500)),
-    ]);
+    const signOutResult = await client.auth.signOut({ scope: "local" });
 
-    if (signOutResult?.timedOut) {
-      setStatus("Logged out locally.", "success");
-    } else if (signOutResult.error) {
+    if (signOutResult.error) {
       throw signOutResult.error;
-    } else {
-      setStatus("Logged out.", "success");
     }
+
+    clearAuthStorage();
+    setStatus("Logged out.", "success");
   } catch (error) {
+    clearAuthStorage();
     setStatus(error.message || String(error), "error");
   } finally {
     authForm.reset();
