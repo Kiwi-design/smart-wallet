@@ -91,9 +91,29 @@ function setPage(pageName) {
 }
 
 function clearAuthStorage() {
-  for (const key of authStorageKeys) {
-    window.localStorage.removeItem(key);
-    window.sessionStorage.removeItem(key);
+  const projectPrefix = `sb-${projectRef}-`;
+
+  for (const storage of [window.localStorage, window.sessionStorage]) {
+    const keysToRemove = [];
+
+    for (let i = 0; i < storage.length; i += 1) {
+      const key = storage.key(i);
+      if (!key) {
+        continue;
+      }
+
+      if (key === "supabase.auth.token" || key.startsWith(projectPrefix)) {
+        keysToRemove.push(key);
+      }
+    }
+
+    for (const key of keysToRemove) {
+      storage.removeItem(key);
+    }
+
+    for (const key of authStorageKeys) {
+      storage.removeItem(key);
+    }
   }
 }
 
@@ -138,7 +158,13 @@ async function signup(email, password) {
 }
 
 async function login(email, password) {
+  await Promise.race([
+    client.auth.signOut({ scope: "local" }),
+    new Promise((resolve) => setTimeout(resolve, 1200)),
+  ]);
   clearAuthStorage();
+
+  const { error } = await client.auth.signInWithPassword({ email, password });
 
   const loginResult = await runWithTimeout(
     client.auth.signInWithPassword({ email, password }),
@@ -183,11 +209,20 @@ logoutBtn.addEventListener("click", async () => {
   try {
     setLoading(true);
 
+    const signOutResult = await Promise.race([
+      client.auth.signOut({ scope: "local" }),
+      new Promise((resolve) => setTimeout(() => resolve({ timedOut: true }), 2000)),
+    ]);
+
     clearAuthStorage();
 
-    // Skip async sign-out to avoid client auth lockups; hard-reload gives a fresh auth client state.
-    setStatus("Logged out.", "success");
-    shouldReload = true;
+    if (signOutResult?.timedOut) {
+      setStatus("Logged out locally.", "success");
+    } else if (signOutResult?.error) {
+      throw signOutResult.error;
+    } else {
+      setStatus("Logged out.", "success");
+    }
   } catch (error) {
     clearAuthStorage();
     setStatus(error.message || String(error), "error");
